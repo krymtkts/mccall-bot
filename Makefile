@@ -14,5 +14,5 @@ deploy: build
 	serverless deploy --verbose
 
 .PHONY: dryrun
-deploy: build
+dryrun: build
 	serverless deploy --verbose --noDeploy
