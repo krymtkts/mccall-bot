@@ -15,5 +15,7 @@ vendor/
 bin/
 
 .serverless/
+conf/
+!.gitkeep
 
 *.code*

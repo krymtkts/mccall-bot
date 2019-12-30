@@ -19,6 +19,7 @@ functions:
       - http:
           path: world
           method: get
+    environment: ${file(./conf/env.yml)}
 
 package:
   exclude:
