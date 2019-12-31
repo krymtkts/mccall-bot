@@ -13,12 +13,12 @@ functions:
       - http:
           path: hello
           method: get
-  world:
-    handler: bin/world
+  talk:
+    handler: bin/talk
     events:
       - http:
-          path: world
-          method: get
+          path: talk
+          method: post
     environment: ${file(./conf/env.yml)}
 
 package:

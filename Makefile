@@ -7,7 +7,7 @@ export GOOS=linux
 build:
 	go mod tidy
 	go build -ldflags="-s -w" -o bin/hello hello/main.go
-	go build -ldflags="-s -w" -o bin/world world/main.go
+	go build -ldflags="-s -w" -o bin/talk talk/main.go
 
 .PHONY: deploy
 deploy: build
