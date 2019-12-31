@@ -5,6 +5,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"encoding/json"
+	"log"
 	"math"
 	"math/big"
 	"math/rand"
@@ -72,23 +73,58 @@ func sendToSlack(message string) error {
 	return err
 }
 
-// Handler is our lambda handler invoked by the `lambda.Start` function call
-func Handler(ctx context.Context) (Response, error) {
+type MccallEventBody struct {
+	Token     string `json:"token"`
+	Challenge string `json:"challenge"`
+	Type      string `json:"type"`
+}
+
+type MccallEvent struct {
+	Body string `json:"body"`
+	User string `json:"user"`
+	Text string `json:"text"`
+}
+
+// HandleRequest is our lambda handler invoked by the `lambda.Start` function call
+func HandleRequest(ctx context.Context, event MccallEvent) (Response, error) {
+	log.Println("start")
+
+	var challenge = ""
+	log.Printf("event: %+v\n", event)
+	if event.Body != "" {
+		var eventBody MccallEventBody
+		json.Unmarshal([]byte(event.Body), &eventBody)
+		log.Printf("eventBody: %+v\n", eventBody)
+		if &eventBody != nil {
+			challenge = eventBody.Challenge
+			log.Println(challenge)
+		}
+	}
+
 	var message = getMccallVoice(getRandomIndex())
+	log.Println(message)
 	sendToSlack(message)
+
+	var body, _ = json.Marshal(map[string]interface{}{
+		"challenge": challenge,
+	})
+	var buf bytes.Buffer
+	json.HTMLEscape(&buf, body)
 
 	resp := Response{
 		StatusCode:      200,
 		IsBase64Encoded: false,
+		Body:            buf.String(),
 		Headers: map[string]string{
 			"Content-Type":           "application/json",
 			"X-MyCompany-Func-Reply": "world-handler",
 		},
 	}
+	log.Printf("resp: %+v\n", resp)
 
 	return resp, nil
 }
 
 func main() {
-	lambda.Start(Handler)
+	lambda.Start(HandleRequest)
 }
