@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	crand "crypto/rand"
 	"encoding/json"
 	"log"
@@ -14,6 +13,10 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/comprehend"
+	"github.com/nlopes/slack/slackevents"
 )
 
 // Response is of type APIGatewayProxyResponse since we're leveraging the
@@ -73,56 +76,78 @@ func sendToSlack(message string) error {
 	return err
 }
 
-type MccallEventBody struct {
-	Token     string `json:"token"`
-	Challenge string `json:"challenge"`
-	Type      string `json:"type"`
-}
-
-type MccallEvent struct {
-	Body string `json:"body"`
-	User string `json:"user"`
-	Text string `json:"text"`
+type simpleBody struct {
+	Token string `json:"token"`
 }
 
 // HandleRequest is our lambda handler invoked by the `lambda.Start` function call
-func HandleRequest(ctx context.Context, event MccallEvent) (Response, error) {
+func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	log.Println("start")
 
-	var challenge = ""
-	log.Printf("event: %+v\n", event)
-	if event.Body != "" {
-		var eventBody MccallEventBody
-		json.Unmarshal([]byte(event.Body), &eventBody)
-		log.Printf("eventBody: %+v\n", eventBody)
-		if &eventBody != nil {
-			challenge = eventBody.Challenge
-			log.Println(challenge)
+	requestBody := request.Body
+	log.Printf("requestBody: %+v\n", requestBody)
+
+	var verification simpleBody
+	err := json.Unmarshal([]byte(requestBody), &verification)
+	log.Printf("verification: %+v\n", verification)
+
+	eventsAPIEvent, err := slackevents.ParseEvent(
+		json.RawMessage(requestBody),
+		slackevents.OptionVerifyToken(&slackevents.TokenComparator{VerificationToken: verification.Token}),
+	)
+	if err != nil {
+		log.Print(err)
+		return events.APIGatewayProxyResponse{}, err
+	}
+
+	log.Printf("eventsAPIEvent: %+v\n", eventsAPIEvent)
+	switch eventsAPIEvent.Type {
+	case slackevents.URLVerification:
+		var r *slackevents.ChallengeResponse
+		err := json.Unmarshal([]byte(requestBody), &r)
+		if err != nil {
+			log.Print(err)
+			return events.APIGatewayProxyResponse{}, err
 		}
+		return events.APIGatewayProxyResponse{
+			StatusCode: 200,
+			Body:       r.Challenge,
+		}, nil
+	case slackevents.CallbackEvent:
+		innerEvent := eventsAPIEvent.InnerEvent
+		switch ev := innerEvent.Data.(type) {
+		case *slackevents.AppMentionEvent:
+			log.Printf("body.event.text: %+v\n", ev.Text)
+			client := comprehend.New(session.New(), aws.NewConfig().WithRegion("ap-southeast-1"))
+			param := comprehend.DetectSentimentInput{}
+			param.SetLanguageCode("ja")
+			param.SetText(ev.Text)
+			log.Printf("validate sentiment params: %+v\n", param.Validate())
+			output, err := client.DetectSentiment(&param)
+			if err != nil {
+				log.Printf("detected sentiment failed: %+v\n", err)
+			} else {
+				log.Printf("sentiment: %+v\n", *(output.Sentiment))
+				log.Printf("score: %+v\n", output.SentimentScore)
+			}
+
+			message := getMccallVoice(getRandomIndex())
+			log.Println(message)
+			sendToSlack(message)
+
+			return events.APIGatewayProxyResponse{
+				StatusCode: 200,
+			}, nil
+		default:
+			log.Printf("unsupported event: %+v\n", ev)
+		}
+	default:
+		log.Printf("unsupported type: %+v\n", eventsAPIEvent)
 	}
-
-	var message = getMccallVoice(getRandomIndex())
-	log.Println(message)
-	sendToSlack(message)
-
-	var body, _ = json.Marshal(map[string]interface{}{
-		"challenge": challenge,
-	})
-	var buf bytes.Buffer
-	json.HTMLEscape(&buf, body)
-
-	resp := Response{
-		StatusCode:      200,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type":           "application/json",
-			"X-MyCompany-Func-Reply": "world-handler",
-		},
-	}
-	log.Printf("resp: %+v\n", resp)
-
-	return resp, nil
+	log.Println("no effect.")
+	return events.APIGatewayProxyResponse{
+		StatusCode: 400,
+	}, nil
 }
 
 func main() {

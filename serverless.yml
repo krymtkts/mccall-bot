@@ -10,6 +10,7 @@ provider:
   timeout: 30
   iamManagedPolicies:
     - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+    - "arn:aws:iam::aws:policy/ComprehendReadOnly"
   logs:
     restApi: true
 
