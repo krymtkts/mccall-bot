@@ -81,7 +81,7 @@ type simpleBody struct {
 }
 
 // HandleRequest is our lambda handler invoked by the `lambda.Start` function call
-func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func HandleRequest(request events.APIGatewayProxyRequest) (Response, error) {
 	log.Println("start")
 
 	requestBody := request.Body
@@ -97,7 +97,7 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	)
 	if err != nil {
 		log.Print(err)
-		return events.APIGatewayProxyResponse{}, err
+		return Response{}, err
 	}
 
 	log.Printf("eventsAPIEvent: %+v\n", eventsAPIEvent)
@@ -107,9 +107,9 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		err := json.Unmarshal([]byte(requestBody), &r)
 		if err != nil {
 			log.Print(err)
-			return events.APIGatewayProxyResponse{}, err
+			return Response{}, err
 		}
-		return events.APIGatewayProxyResponse{
+		return Response{
 			StatusCode: 200,
 			Body:       r.Challenge,
 		}, nil
@@ -135,7 +135,7 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 			log.Println(message)
 			sendToSlack(message)
 
-			return events.APIGatewayProxyResponse{
+			return Response{
 				StatusCode: 200,
 			}, nil
 		default:
@@ -145,7 +145,7 @@ func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		log.Printf("unsupported type: %+v\n", eventsAPIEvent)
 	}
 	log.Println("no effect.")
-	return events.APIGatewayProxyResponse{
+	return Response{
 		StatusCode: 400,
 	}, nil
 }
