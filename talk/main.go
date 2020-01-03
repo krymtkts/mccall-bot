@@ -80,21 +80,62 @@ type simpleBody struct {
 	Token string `json:"token"`
 }
 
-// HandleRequest is our lambda handler invoked by the `lambda.Start` function call
-func HandleRequest(request events.APIGatewayProxyRequest) (Response, error) {
-	log.Println("start")
-
-	requestBody := request.Body
+func getAPIEvents(requestBody string) (slackevents.EventsAPIEvent, error) {
 	log.Printf("requestBody: %+v\n", requestBody)
 
 	var verification simpleBody
-	err := json.Unmarshal([]byte(requestBody), &verification)
+	json.Unmarshal([]byte(requestBody), &verification)
 	log.Printf("verification: %+v\n", verification)
 
 	eventsAPIEvent, err := slackevents.ParseEvent(
 		json.RawMessage(requestBody),
 		slackevents.OptionVerifyToken(&slackevents.TokenComparator{VerificationToken: verification.Token}),
 	)
+	return eventsAPIEvent, err
+}
+
+func getChallengeResponse(requestBody string) (Response, error) {
+	var r *slackevents.ChallengeResponse
+	err := json.Unmarshal([]byte(requestBody), &r)
+	if err != nil {
+		log.Print(err)
+		return Response{}, err
+	}
+	return Response{
+		StatusCode: 200,
+		Body:       r.Challenge,
+	}, nil
+}
+
+func getMentionEventResponce(mentionEvent *slackevents.AppMentionEvent) (Response, error) {
+	log.Printf("body.event.text: %+v\n", mentionEvent.Text)
+	client := comprehend.New(session.New(), aws.NewConfig().WithRegion("ap-southeast-1"))
+	param := comprehend.DetectSentimentInput{}
+	param.SetLanguageCode("ja")
+	param.SetText(mentionEvent.Text)
+	log.Printf("validate sentiment params: %+v\n", param.Validate())
+	output, err := client.DetectSentiment(&param)
+	if err != nil {
+		log.Printf("detected sentiment failed: %+v\n", err)
+	} else {
+		log.Printf("sentiment: %+v\n", *(output.Sentiment))
+		log.Printf("score: %+v\n", output.SentimentScore)
+	}
+
+	message := getMccallVoice(getRandomIndex())
+	log.Println(message)
+	sendToSlack(message)
+
+	return Response{
+		StatusCode: 200,
+	}, nil
+}
+
+// HandleRequest is our lambda handler invoked by the `lambda.Start` function call
+func HandleRequest(request events.APIGatewayProxyRequest) (Response, error) {
+	log.Println("start")
+
+	eventsAPIEvent, err := getAPIEvents(request.Body)
 	if err != nil {
 		log.Print(err)
 		return Response{}, err
@@ -103,41 +144,12 @@ func HandleRequest(request events.APIGatewayProxyRequest) (Response, error) {
 	log.Printf("eventsAPIEvent: %+v\n", eventsAPIEvent)
 	switch eventsAPIEvent.Type {
 	case slackevents.URLVerification:
-		var r *slackevents.ChallengeResponse
-		err := json.Unmarshal([]byte(requestBody), &r)
-		if err != nil {
-			log.Print(err)
-			return Response{}, err
-		}
-		return Response{
-			StatusCode: 200,
-			Body:       r.Challenge,
-		}, nil
+		return getChallengeResponse(request.Body)
 	case slackevents.CallbackEvent:
 		innerEvent := eventsAPIEvent.InnerEvent
 		switch ev := innerEvent.Data.(type) {
 		case *slackevents.AppMentionEvent:
-			log.Printf("body.event.text: %+v\n", ev.Text)
-			client := comprehend.New(session.New(), aws.NewConfig().WithRegion("ap-southeast-1"))
-			param := comprehend.DetectSentimentInput{}
-			param.SetLanguageCode("ja")
-			param.SetText(ev.Text)
-			log.Printf("validate sentiment params: %+v\n", param.Validate())
-			output, err := client.DetectSentiment(&param)
-			if err != nil {
-				log.Printf("detected sentiment failed: %+v\n", err)
-			} else {
-				log.Printf("sentiment: %+v\n", *(output.Sentiment))
-				log.Printf("score: %+v\n", output.SentimentScore)
-			}
-
-			message := getMccallVoice(getRandomIndex())
-			log.Println(message)
-			sendToSlack(message)
-
-			return Response{
-				StatusCode: 200,
-			}, nil
+			return getMentionEventResponce(ev)
 		default:
 			log.Printf("unsupported event: %+v\n", ev)
 		}
