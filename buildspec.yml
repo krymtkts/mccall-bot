@@ -16,9 +16,6 @@ phases:
     commands:
       - echo Building and deploying the mccall-bot...
       - make deploy
-  post_build:
-    commands:
-      - echo Deploying completed on `date`
 artifacts:
   files:
     - .serverless/mccall-bot.zip
