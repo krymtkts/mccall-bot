@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.13
+      nodejs: 10
+    commands:
+      - npm install -g serverless
+  pre_build:
+    commands:
+      - echo Testing the mccall-bot...
+      - make test
+      - echo "incoming_webhook_uri:"" $incoming_webhook_uri" > ./conf/env.yml
+  build:
+    commands:
+      - echo Building and deploying the mccall-bot...
+      - make deploy
+  post_build:
+    commands:
+      - echo Deploying completed on `date`
+artifacts:
+  files:
+    - .serverless/mccall-bot.zip
+  discard-paths: yes
