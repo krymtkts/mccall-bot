@@ -1,6 +1,8 @@
 export GO111MODULE=on
 export GOOS=linux
 
+.PHONY: build deploy dryrun test
+
 # .PHONY: clean
 # 	rm -r ./bin
 
@@ -9,10 +11,11 @@ build:
 	go build -ldflags="-s -w" -o bin/hello hello/main.go
 	go build -ldflags="-s -w" -o bin/talk talk/main.go
 
-.PHONY: deploy
 deploy: build
 	serverless deploy --verbose
 
-.PHONY: dryrun
 dryrun: build
 	serverless deploy --verbose --noDeploy
+
+test:
+	go test ./talk
