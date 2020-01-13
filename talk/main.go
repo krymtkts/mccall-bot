@@ -26,34 +26,52 @@ import (
 type Response events.APIGatewayProxyResponse
 
 var requestURI = os.Getenv("incoming_webhook_uri")
-var mccallVoices = []string{
+var negativeResponse = []string{
 	"力になりたくても、やる気がなければ無理だ。",
 	"完璧さよりも進歩だ。",
 	"体と知力と心だ。",
-	"直感だよ。",
-	"老人は老人で、魚は魚だ。自分以外のものにはなれない。何があっても。",
 	"自分を疑えば失敗する。",
 	"なれるよ。そうなりたいと、望むなら、何にでもなれる。",
 	"世界を変えろ。",
-	"ああ、ちょっとドジを踏んでね。",
+	"塩分のとりすぎだ。",
 	"ベストを尽くせ。",
 	"警官は倫理の象徴だ、クズが。保護と奉仕、法の遵守、正義、忘れたか。",
-	"ある日誰かがひどいことをする。被害者とは他人だが、見過ごせない。なぜなら、力になってやれるからだ。",
 	"正義を行うんだ。正義を行え。正義を行え。いい警官たちのために。",
+}
+var neutralRespose = []string{
+	"老人は老人で、魚は魚だ。自分以外のものにはなれない。何があっても。",
+	"ああ、ちょっとドジを踏んでね。",
+	"ある日誰かがひどいことをする。被害者とは他人だが、見過ごせない。なぜなら、力になってやれるからだ。",
 	"組織とビジネスは潰す。ひとつずつ、一ドルずつ、一人ずつ。",
 	"雨乞いをするならぬかるみも覚悟しろ。",
 	"さっきその目に何が見えるか聞いたな？私の目には何が見える。",
+}
+var positiveRespose = []string{
+	"歌が上手そうだ。",
+	"直感だよ。",
+	"いいぞ。",
 	"自分で紬げる。",
 }
 
-func getRandomIndex() int {
-	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-	rand.Seed(seed.Int64())
-	return rand.Intn(len(mccallVoices))
+var mccallVoices = map[string][]string{
+	comprehend.SentimentTypeNegative: negativeResponse,
+	comprehend.SentimentTypeNeutral:  positiveRespose,
+	comprehend.SentimentTypePositive: neutralRespose,
+	comprehend.SentimentTypeMixed:    append(negativeResponse, append(positiveRespose, neutralRespose...)...),
 }
 
-func getMccallVoice(index int) string {
-	return mccallVoices[index]
+func getRandomIndex(max int) int {
+	seed, _ := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+	rand.Seed(seed.Int64())
+	return rand.Intn(max)
+}
+
+func getMccallVoice(voices []string, index int) string {
+	return voices[index]
+}
+
+func getResponses(sentiment string) []string {
+	return mccallVoices[sentiment]
 }
 
 func sendToSlack(message string) error {
@@ -117,12 +135,16 @@ func getMentionEventResponce(mentionEvent *slackevents.AppMentionEvent) (Respons
 	output, err := client.DetectSentiment(&param)
 	if err != nil {
 		log.Printf("detected sentiment failed: %+v\n", err)
+		return Response{
+			StatusCode: 500,
+		}, err
 	} else {
 		log.Printf("sentiment: %+v\n", *(output.Sentiment))
 		log.Printf("score: %+v\n", output.SentimentScore)
 	}
 
-	message := getMccallVoice(getRandomIndex())
+	voices := getResponses(*(output.Sentiment))
+	message := getMccallVoice(voices, getRandomIndex(len(voices)))
 	log.Println(message)
 	sendToSlack(message)
 
