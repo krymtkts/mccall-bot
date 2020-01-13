@@ -55,8 +55,8 @@ var positiveRespose = []string{
 
 var mccallVoices = map[string][]string{
 	comprehend.SentimentTypeNegative: negativeResponse,
-	comprehend.SentimentTypeNeutral:  positiveRespose,
-	comprehend.SentimentTypePositive: neutralRespose,
+	comprehend.SentimentTypeNeutral:  neutralRespose,
+	comprehend.SentimentTypePositive: positiveRespose,
 	comprehend.SentimentTypeMixed:    append(negativeResponse, append(positiveRespose, neutralRespose...)...),
 }
 

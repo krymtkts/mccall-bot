@@ -9,15 +9,19 @@ import (
 )
 
 func Test_getRandomIndex(t *testing.T) {
+	type args struct {
+		max int
+	}
 	tests := []struct {
 		name string
+		args args
 		want int
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getRandomIndex(); got != tt.want {
+			if got := getRandomIndex(tt.args.max); got != tt.want {
 				t.Errorf("getRandomIndex() = %v, want %v", got, tt.want)
 			}
 		})
@@ -26,7 +30,8 @@ func Test_getRandomIndex(t *testing.T) {
 
 func Test_getMccallVoice(t *testing.T) {
 	type args struct {
-		index int
+		voices []string
+		index  int
 	}
 	tests := []struct {
 		name string
@@ -37,8 +42,28 @@ func Test_getMccallVoice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getMccallVoice(tt.args.index); got != tt.want {
+			if got := getMccallVoice(tt.args.voices, tt.args.index); got != tt.want {
 				t.Errorf("getMccallVoice() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getResponses(t *testing.T) {
+	type args struct {
+		sentiment string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getResponses(tt.args.sentiment); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getResponses() = %v, want %v", got, tt.want)
 			}
 		})
 	}
