@@ -39,16 +39,14 @@ var negativeResponse = []string{
 	"正義を行うんだ。正義を行え。正義を行え。いい警官たちのために。",
 }
 var neutralRespose = []string{
+	"歌が上手そうだ。",
+	"直感だよ。",
 	"老人は老人で、魚は魚だ。自分以外のものにはなれない。何があっても。",
 	"ああ、ちょっとドジを踏んでね。",
 	"ある日誰かがひどいことをする。被害者とは他人だが、見過ごせない。なぜなら、力になってやれるからだ。",
 	"組織とビジネスは潰す。ひとつずつ、一ドルずつ、一人ずつ。",
 	"雨乞いをするならぬかるみも覚悟しろ。",
 	"さっきその目に何が見えるか聞いたな？私の目には何が見える。",
-}
-var positiveRespose = []string{
-	"歌が上手そうだ。",
-	"直感だよ。",
 	"いいぞ。",
 	"自分で紬げる。",
 }
@@ -56,8 +54,8 @@ var positiveRespose = []string{
 var mccallVoices = map[string][]string{
 	comprehend.SentimentTypeNegative: negativeResponse,
 	comprehend.SentimentTypeNeutral:  neutralRespose,
-	comprehend.SentimentTypePositive: positiveRespose,
-	comprehend.SentimentTypeMixed:    append(negativeResponse, append(positiveRespose, neutralRespose...)...),
+	comprehend.SentimentTypePositive: neutralRespose,
+	comprehend.SentimentTypeMixed:    append(negativeResponse, neutralRespose...),
 }
 
 func getRandomIndex(max int) int {
@@ -138,10 +136,9 @@ func getMentionEventResponce(mentionEvent *slackevents.AppMentionEvent) (Respons
 		return Response{
 			StatusCode: 500,
 		}, err
-	} else {
-		log.Printf("sentiment: %+v\n", *(output.Sentiment))
-		log.Printf("score: %+v\n", output.SentimentScore)
 	}
+	log.Printf("sentiment: %+v\n", *(output.Sentiment))
+	log.Printf("score: %+v\n", output.SentimentScore)
 
 	voices := getResponses(*(output.Sentiment))
 	message := getMccallVoice(voices, getRandomIndex(len(voices)))
