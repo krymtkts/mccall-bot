@@ -69,26 +69,6 @@ func Test_getResponses(t *testing.T) {
 	}
 }
 
-func Test_sendToSlack(t *testing.T) {
-	type args struct {
-		message string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := sendToSlack(tt.args.message); (err != nil) != tt.wantErr {
-				t.Errorf("sendToSlack() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func Test_getAPIEvents(t *testing.T) {
 	type args struct {
 		requestBody string
@@ -136,32 +116,6 @@ func Test_getChallengeResponse(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getChallengeResponse() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getMentionEventResponce(t *testing.T) {
-	type args struct {
-		mentionEvent *slackevents.AppMentionEvent
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    Response
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getMentionEventResponce(tt.args.mentionEvent)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getMentionEventResponce() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getMentionEventResponce() = %v, want %v", got, tt.want)
 			}
 		})
 	}
