@@ -1,6 +1,6 @@
 <!--
 title: Mccall bot
-description: 'The bot behaves as Mr. Maccall behaves.
+description: 'The bot behaves as Mr. Mccall behaves.
 layout: Doc
 framework: v1
 platform: AWS
