@@ -3,12 +3,8 @@ export GOOS=linux
 
 .PHONY: build deploy dryrun test
 
-# .PHONY: clean
-# 	rm -r ./bin
-
 build:
 	go mod tidy
-	go build -ldflags="-s -w" -o bin/hello hello/main.go
 	go build -ldflags="-s -w" -o bin/talk talk/main.go
 
 deploy: build
